@@ -1,0 +1,167 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#0b1510">
+  <meta name="description" content="Hollowwood: a small, hand-drawn forest adventure. Defeat three beasts, loot the chest, and survive.">
+  <title>Hollowwood — Forest of Three Beasts</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230d1c14'/%3E%3Cpath d='M32 9l5.6 17.2H55L40.7 36.5 46 54 32 43.5 18 54l5.3-17.5L9 26.2h17.4z' fill='%23e6c168'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <main id="game-shell">
+    <canvas id="game" aria-label="Hollowwood game world. Move with the joystick and swing your sword at the three beasts."></canvas>
+
+    <div id="hud" class="hud is-hidden" aria-live="polite">
+      <div class="hud-top">
+        <section class="player-panel" aria-label="Player status">
+          <div class="crest" aria-hidden="true">
+            <span class="crest-mark">⚔</span>
+          </div>
+          <div class="status-main">
+            <div class="status-line">
+              <span class="player-name">WARRIOR</span>
+              <span id="hp-text" class="hp-text">100 / 100</span>
+            </div>
+            <div id="health-track" class="health-track" role="progressbar" aria-label="Health" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100">
+              <div id="health-fill" class="health-fill"></div>
+              <span class="health-glint"></span>
+            </div>
+            <div class="objective-line">
+              <span class="objective-label">BEASTS</span>
+              <span id="beast-pips" class="beast-pips" aria-hidden="true">
+                <span class="beast-pip"></span><span class="beast-pip"></span><span class="beast-pip"></span>
+              </span>
+              <span id="kill-count" class="kill-count">0 / 3</span>
+            </div>
+          </div>
+        </section>
+
+        <section class="satchel" aria-label="Inventory">
+          <div class="satchel-head">
+            <span class="satchel-title">SATCHEL</span>
+            <button id="sound-btn" class="sound-btn" type="button" aria-label="Mute sound" title="Mute sound">🔊</button>
+          </div>
+          <div class="satchel-row">
+            <div class="inv-chip" title="Gold collected">
+              <span class="chip-icon" aria-hidden="true">🪙</span>
+              <span id="gold-count" class="chip-value">0</span>
+            </div>
+            <div class="inv-chip" title="Healing potions">
+              <span class="chip-icon" aria-hidden="true">🧪</span>
+              <span id="potion-count" class="chip-value">1</span>
+            </div>
+            <div class="inv-chip" title="Sword damage per hit">
+              <span class="chip-icon" aria-hidden="true">⚔️</span>
+              <span id="sword-stat" class="chip-value">18</span>
+            </div>
+          </div>
+          <div id="relic-list" class="relic-list" aria-label="Treasures and upgrades"></div>
+        </section>
+      </div>
+
+      <div id="toast" class="toast" role="status"></div>
+      <div id="desktop-hint" class="desktop-hint">
+        <kbd>WASD</kbd> move <span>·</span> <kbd>SPACE</kbd> sword <span>·</span> <kbd>Q</kbd> potion <span>·</span> <kbd>E</kbd> open
+      </div>
+    </div>
+
+    <div id="controls" class="controls is-hidden">
+      <div id="joystick" class="joystick" role="application" aria-label="Movement joystick. Drag to move.">
+        <div class="joystick-ring"></div>
+        <div class="joystick-arrows" aria-hidden="true"><span>▲</span><span>▼</span><span>◀</span><span>▶</span></div>
+        <div id="joystick-knob" class="joystick-knob" aria-hidden="true"><span></span></div>
+      </div>
+
+      <div class="action-cluster">
+        <button id="interact-btn" class="game-btn interact-btn" type="button" aria-label="Open chest">
+          <span class="btn-glyph" aria-hidden="true">✦</span>
+          <span class="btn-word">OPEN</span>
+        </button>
+        <button id="potion-btn" class="game-btn potion-btn" type="button" aria-label="Drink healing potion">
+          <span class="btn-glyph" aria-hidden="true">🧪</span>
+          <span class="btn-word">HEAL</span>
+          <span id="potion-badge" class="btn-badge">1</span>
+        </button>
+        <button id="attack-btn" class="game-btn attack-btn" type="button" aria-label="Swing sword">
+          <span class="attack-swoosh" aria-hidden="true"></span>
+          <span class="btn-glyph sword-glyph" aria-hidden="true">🗡️</span>
+          <span class="btn-word">SWORD</span>
+        </button>
+      </div>
+    </div>
+
+    <div id="menu" class="overlay menu-overlay">
+      <div class="menu-vignette" aria-hidden="true"></div>
+      <div class="menu-card">
+        <p class="eyebrow"><span></span> A FOREST ADVENTURE <span></span></p>
+        <h1 class="game-title">HOLLOW<span>WOOD</span></h1>
+        <p class="subtitle">Three beasts have taken the glade.<br>Only one blade can take it back.</p>
+
+        <div class="menu-controls">
+          <div class="control-tile">
+            <span class="tile-icon">🕹️</span>
+            <span><b>Move</b><small>Joystick / WASD</small></span>
+          </div>
+          <div class="control-tile">
+            <span class="tile-icon">🗡️</span>
+            <span><b>Swing</b><small>Sword button / Space</small></span>
+          </div>
+          <div class="control-tile">
+            <span class="tile-icon">🧪</span>
+            <span><b>Heal</b><small>Vial button / Q</small></span>
+          </div>
+          <div class="control-tile">
+            <span class="tile-icon">✦</span>
+            <span><b>Loot</b><small>Open button / E</small></span>
+          </div>
+        </div>
+
+        <button id="play-btn" class="primary-btn" type="button">Play</button>
+        <p class="menu-footnote">Defeat all three beasts. Find the chest. Keep your health above zero.</p>
+      </div>
+    </div>
+
+    <div id="victory" class="overlay result-overlay is-hidden">
+      <div class="result-card victory-card">
+        <p class="eyebrow"><span></span> THE GLADE IS SAFE <span></span></p>
+        <h2 class="result-title">VICTORY</h2>
+        <p class="result-copy">The last beast falls. Hollowwood breathes again — and your satchel is heavier for it.</p>
+        <div class="result-stats">
+          <div><span id="victory-time">0:00</span><small>TIME</small></div>
+          <div><span id="victory-kills">3</span><small>BEASTS</small></div>
+          <div><span id="victory-gold">0</span><small>GOLD</small></div>
+          <div><span id="victory-damage">0</span><small>DAMAGE</small></div>
+        </div>
+        <div id="victory-loot" class="victory-loot"></div>
+        <button id="again-btn" class="primary-btn" type="button">Play again</button>
+      </div>
+    </div>
+
+    <div id="gameover" class="overlay result-overlay is-hidden">
+      <div class="result-card defeat-card">
+        <p class="eyebrow danger"><span></span> THE FOREST CLAIMS ANOTHER <span></span></p>
+        <h2 class="result-title">YOU FELL</h2>
+        <p class="result-copy">The beasts still prowl the glade. Rise, sharpen your blade, and try again.</p>
+        <div class="result-stats">
+          <div><span id="defeat-kills">0</span><small>BEASTS SLAIN</small></div>
+          <div><span id="defeat-damage">0</span><small>DAMAGE DEALT</small></div>
+          <div><span id="defeat-gold">0</span><small>GOLD</small></div>
+        </div>
+        <button id="retry-btn" class="primary-btn" type="button">Rise again</button>
+      </div>
+    </div>
+
+    <div id="rotate-hint" class="rotate-hint" aria-hidden="true">
+      <span>↻</span> Turn your device for a wider view
+    </div>
+  </main>
+
+  <script src="js/core.js"></script>
+  <script src="js/logic.js"></script>
+  <script src="js/render-world.js"></script>
+  <script src="js/render-fx.js"></script>
+  <script src="js/main.js"></script>
+</body>
+</html>
